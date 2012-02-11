@@ -143,7 +143,7 @@ public class Buffer extends Observable implements Comparable<Buffer> {
 			lastHighlightMessageId = message.messageId;
 			this.setChanged();
 		}
-		if (message.type==IrcMessage.Type.Plain && message.messageId > lastPlainMessageId) {
+		if ((message.type==IrcMessage.Type.Plain || message.type==IrcMessage.Type.Action) && message.messageId > lastPlainMessageId) {
 			lastPlainMessageId = message.messageId;
 			this.setChanged();
 		}
