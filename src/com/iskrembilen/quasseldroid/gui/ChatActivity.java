@@ -135,13 +135,23 @@ public class ChatActivity extends Activity{
 		public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
 			IrcMessage message = adapter.getItem(position);
 			if (message.hasURLs()) {
-				ArrayList<String> urls = (ArrayList<String>) message.getURLs();
+				final ArrayList<String> urls = (ArrayList<String>) message.getURLs();
 
 				if (urls.size() == 1 ){ //Open the URL
 					Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(urls.get(0)));
 					startActivity(browserIntent);
 				} else if (urls.size() > 1 ){
-					//Show list of urls, and make it possible to choose one
+					//Show list of URLs, and make it possible to choose one
+					AlertDialog.Builder urlListBuilder = new AlertDialog.Builder(ChatActivity.this);
+					final CharSequence[] urlArray = urls.toArray(new CharSequence[urls.size()]);
+					urlListBuilder.setItems(urlArray, new DialogInterface.OnClickListener() {
+						public void onClick(DialogInterface dialog, int selectedUrl) {
+							Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(urls.get(selectedUrl)));
+							startActivity(browserIntent);
+						}
+					});
+					AlertDialog urlList = urlListBuilder.create();
+					urlList.show();
 				}
 			}
 			return false;

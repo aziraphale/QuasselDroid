@@ -290,8 +290,8 @@ public class CoreConnService extends Service {
 	 */
 	public void checkForURL(IrcMessage message) {
 		Matcher matcher = URLPattern.matcher(message.content);
-		if (matcher.find()) {
-			message.addURL(this, matcher.group(0));
+		while (matcher.find()) {
+			message.addURL(this, matcher.group());
 		}
 	}
 
