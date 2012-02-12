@@ -145,4 +145,8 @@ public class BufferCollection extends Observable implements Observer {
 	public List<Buffer> getRawBufferList() {
 		return bufferList;
 	}
+	
+	public List<Buffer> getRawFilteredBufferList() {
+		return filteredList;
+	}
 }

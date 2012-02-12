@@ -46,10 +46,13 @@ import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnKeyListener;
 import android.view.ViewGroup;
@@ -117,6 +120,8 @@ public class ChatActivity extends Activity{
 		backlogList.setOnItemLongClickListener(itemLongClickListener);
 		((ListView) findViewById(R.id.chatBacklogList)).setCacheColorHint(0xffffff);
 
+        backlogList.setOnTouchListener(gestureListener);
+
 		statusReceiver = new ResultReceiver(null) {
 
 			@Override
@@ -177,7 +182,47 @@ public class ChatActivity extends Activity{
 			return false;
 		}
 	};
+	
+	private void switchToBuffer(Buffer buffer) {
+		Intent i = new Intent(ChatActivity.this, ChatActivity.class);
+		i.putExtra(BUFFER_ID_EXTRA, buffer.getInfo().id);
+		i.putExtra(BUFFER_NAME_EXTRA, buffer.getInfo().name);
+		startActivity(i);
+	}
+	
+	class HorizontalSwipeGestureDetector extends SimpleOnGestureListener {
+		private static final int SWIPE_MIN_DISTANCE = 120;
+		private static final int SWIPE_MAX_OFF_PATH = 250;
+		private static final int SWIPE_THRESHOLD_VELOCITY = 200;
+		
+		@Override
+		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH) {
+                return false;
+            }
+            
+			if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+				// Swiped from right to left
+				Buffer nextBuffer = boundConnService.getNetworkList(null).getNextBufferFromId(adapter.getBufferId(), false);
+				switchToBuffer(nextBuffer);
+			} else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
+				// Swiped from left to right
+				Buffer prevBuffer = boundConnService.getNetworkList(null).getPreviousBufferFromId(adapter.getBufferId(), false);
+				switchToBuffer(prevBuffer);
+			}
+			return false;
+		}
+	}
 
+	private GestureDetector gestureDetector = new GestureDetector(new HorizontalSwipeGestureDetector());
+	View.OnTouchListener gestureListener = new View.OnTouchListener() {
+        public boolean onTouch(View v, MotionEvent event) {
+            if (gestureDetector.onTouchEvent(event)) {
+                return true;
+            }
+            return false;
+        }
+    };
 
 	//TODO: fix this again after changing from string to ircusers
 	//Nick autocomplete when pressing the search-button

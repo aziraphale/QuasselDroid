@@ -35,6 +35,75 @@ public class NetworkCollection extends Observable implements Observer {
 		return null;
 	}
 	
+	public Buffer getPreviousBufferFromId(int bufferId, boolean incStatus) {
+		Buffer prev = null;
+		boolean found = false;
+		for (Network network : networkList) {
+			if (network.getStatusBuffer().getInfo().id == bufferId) {
+				found = true;
+				break;
+			}
+			
+			if (incStatus)
+				prev = network.getStatusBuffer();
+			
+			for (Buffer buf : network.getBuffers().getRawFilteredBufferList()) {
+				if (buf.getInfo().id == bufferId) {
+					found = true;
+					break;
+				}
+				
+				prev = buf;
+			}
+			if (found)
+				break;
+		}
+		
+		if (prev == null) {
+			// Didn't find one, so try looking through backwards to find the last one in the list
+			// This can probably be done much better, but this will have to do for now
+			for (int i=networkList.size()-1; i>=0; i--) {
+				List<Buffer> bufList = networkList.get(i).getBuffers().getRawBufferList();
+				for (int ii=bufList.size()-1; ii>=0; ii--) {
+					prev = bufList.get(ii);
+					break;
+				}
+				prev = networkList.get(i).getStatusBuffer();
+				break;
+			}
+		}
+		
+		return prev;
+	}
+	
+	public Buffer getNextBufferFromId(int bufferId, boolean incStatus) {
+		Buffer first = null;
+		boolean foundCurrent = false;
+		for (Network network : networkList) {
+			if (first == null && incStatus)
+				first = network.getStatusBuffer();
+			
+			if (network.getStatusBuffer().getInfo().id == bufferId) {
+				if (incStatus && foundCurrent)
+					return network.getStatusBuffer();
+				foundCurrent = true;
+			}
+			
+			for (Buffer buf : network.getBuffers().getRawFilteredBufferList()) {
+				if (first == null)
+					first = buf;
+				
+				if (foundCurrent)
+					return buf;
+				
+				if (buf.getInfo().id == bufferId)
+					foundCurrent = true;
+			}
+		}
+		
+		return first;
+	}
+	
 	public Network getNetworkById(int networkId) {
 		for(Network network : networkList) {
 			if(network.getId() == networkId)
