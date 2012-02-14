@@ -31,6 +31,7 @@ import java.util.Observer;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -66,6 +67,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.iskrembilen.quasseldroid.Buffer;
 import com.iskrembilen.quasseldroid.BufferInfo;
@@ -136,6 +138,15 @@ public class ChatActivity extends Activity{
 
 	OnItemLongClickListener itemLongClickListener = new OnItemLongClickListener() {
 
+		private void openUrl(String url) {
+			try {
+				Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+				startActivity(browserIntent);
+			} catch (ActivityNotFoundException ex) {
+				Toast.makeText(ChatActivity.this, "No handler found for that URL.", Toast.LENGTH_SHORT);
+			}
+		}
+		
 		@Override
 		public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
 			IrcMessage message = adapter.getItem(position);
@@ -143,16 +154,14 @@ public class ChatActivity extends Activity{
 				final ArrayList<String> urls = (ArrayList<String>) message.getURLs();
 
 				if (urls.size() == 1 ){ //Open the URL
-					Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(urls.get(0)));
-					startActivity(browserIntent);
+					openUrl(urls.get(0));
 				} else if (urls.size() > 1 ){
 					//Show list of URLs, and make it possible to choose one
 					AlertDialog.Builder urlListBuilder = new AlertDialog.Builder(ChatActivity.this);
 					final CharSequence[] urlArray = urls.toArray(new CharSequence[urls.size()]);
 					urlListBuilder.setItems(urlArray, new DialogInterface.OnClickListener() {
 						public void onClick(DialogInterface dialog, int selectedUrl) {
-							Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(urls.get(selectedUrl)));
-							startActivity(browserIntent);
+							openUrl(urls.get(selectedUrl));
 						}
 					});
 					AlertDialog urlList = urlListBuilder.create();
