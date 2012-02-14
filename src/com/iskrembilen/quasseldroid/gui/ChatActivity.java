@@ -143,7 +143,7 @@ public class ChatActivity extends Activity{
 				Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
 				startActivity(browserIntent);
 			} catch (ActivityNotFoundException ex) {
-				Toast.makeText(ChatActivity.this, "No handler found for that URL.", Toast.LENGTH_SHORT);
+				Toast.makeText(ChatActivity.this, "No handler found for that URL.", Toast.LENGTH_SHORT).show();
 			}
 		}
 		
