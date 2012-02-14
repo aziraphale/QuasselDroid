@@ -184,13 +184,16 @@ public class ChatActivity extends Activity{
 	};
 	
 	private void switchToBuffer(Buffer buffer) {
+		if (buffer == null)
+			return;
+		
 		Intent i = new Intent(ChatActivity.this, ChatActivity.class);
 		i.putExtra(BUFFER_ID_EXTRA, buffer.getInfo().id);
 		i.putExtra(BUFFER_NAME_EXTRA, buffer.getInfo().name);
 		startActivity(i);
 	}
 	
-	class HorizontalSwipeGestureDetector extends SimpleOnGestureListener {
+	class FlingXListener extends SimpleOnGestureListener {
 		private static final int SWIPE_MIN_DISTANCE = 120;
 		private static final int SWIPE_MAX_OFF_PATH = 250;
 		private static final int SWIPE_THRESHOLD_VELOCITY = 200;
@@ -213,11 +216,11 @@ public class ChatActivity extends Activity{
 			return false;
 		}
 	}
-
-	private GestureDetector gestureDetector = new GestureDetector(new HorizontalSwipeGestureDetector());
+	private GestureDetector flingDetector = new GestureDetector(new FlingXListener());
+    
 	View.OnTouchListener gestureListener = new View.OnTouchListener() {
         public boolean onTouch(View v, MotionEvent event) {
-            if (gestureDetector.onTouchEvent(event)) {
+            if (flingDetector.onTouchEvent(event)) {
                 return true;
             }
             return false;
