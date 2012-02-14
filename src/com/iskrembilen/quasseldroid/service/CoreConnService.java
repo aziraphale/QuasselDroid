@@ -91,13 +91,13 @@ public class CoreConnService extends Service {
 
 
 	// The original QuasselDroid URL matching pattern
-	//private Pattern URLPattern = Pattern.compile("((mailto\\:|(news|(ht|f)tp(s?))\\://){1}\\S+)", Pattern.CASE_INSENSITIVE);
+	private Pattern nonWebURLPattern = Pattern.compile("((mailto\\:|(news|ftp(s?))\\://){1}\\S+)", Pattern.CASE_INSENSITIVE);
 	
 	// This regular expression string has been copied wholesale from the android.util.Patterns class' WEB_URL constant,
 	// but that class is only available in Android 2.2, but we currently build against 2.1 and I'd really rather not
 	// bump our minimum required version just for ONE CONSTANT... If, at some point in the future, we make 2.2 or
 	// higher the minimum version, we can replace this massive string with the aforementioned WEB_URL constant
-	private Pattern URLPattern = Pattern.compile("((?:(http|https|Http|Https|rtsp|Rtsp):\\/\\/(?:(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
+	private Pattern WebURLPattern = Pattern.compile("((?:(http|https|Http|Https|rtsp|Rtsp):\\/\\/(?:(?:[a-zA-Z0-9\\$\\-\\_\\.\\+\\!\\*\\'\\(\\)"
 	        + "\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,64}(?:\\:(?:[a-zA-Z0-9\\$\\-\\_"
 	        + "\\.\\+\\!\\*\\'\\(\\)\\,\\;\\?\\&\\=]|(?:\\%[a-fA-F0-9]{2})){1,25})?\\@)?)?"
 	        + "((?:(?:[" + "a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF" + "][" + "a-zA-Z0-9\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF" + "\\-]{0,64}\\.)+"   // named host
@@ -335,9 +335,16 @@ public class CoreConnService extends Service {
 	 *            ircmessage to check
 	 */
 	public void checkForURL(IrcMessage message) {
-		Matcher matcher = URLPattern.matcher(message.content);
-		while (matcher.find()) {
-			message.addURL(this, matcher.group());
+		// First look for "Web" URLs
+		Matcher webMatcher = WebURLPattern.matcher(message.content);
+		while (webMatcher.find()) {
+			message.addURL(this, webMatcher.group());
+		}
+
+		// Now check for things like FTP, News, Mailto, IRC, etc.
+		Matcher miscMatcher = nonWebURLPattern.matcher(message.content);
+		while (miscMatcher.find()) {
+			message.addURL(this, miscMatcher.group());
 		}
 	}
 
