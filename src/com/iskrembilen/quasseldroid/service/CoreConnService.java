@@ -848,12 +848,15 @@ public class CoreConnService extends Service {
 			case R.id.USER_REMOVE_MODE:
 				bundle = (Bundle) msg.obj;
 				bufferName = bundle.getString("channel");
-				user = networks.getNetworkById(msg.arg1).getUserByNick(bundle.getString("nick"));
-				for(Buffer buf : networks.getNetworkById(msg.arg1).getBuffers().getRawBufferList()) {
-						if(buf.getInfo().name.equals(bufferName)) {
-							buf.getUsers().removeUserMode(user, bundle.getString("mode"));
-							break;
-						}
+				Network network = networks.getNetworkById(msg.arg1); 
+				if (network != null) {
+					user = network.getUserByNick(bundle.getString("nick"));
+					for(Buffer buf : networks.getNetworkById(msg.arg1).getBuffers().getRawBufferList()) {
+							if(buf.getInfo().name.equals(bufferName)) {
+								buf.getUsers().removeUserMode(user, bundle.getString("mode"));
+								break;
+							}
+					}
 				}
 				break;
 			}			
