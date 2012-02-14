@@ -194,25 +194,37 @@ public class ChatActivity extends Activity{
 	}
 	
 	class FlingXListener extends SimpleOnGestureListener {
-		private static final int SWIPE_MIN_DISTANCE = 120;
-		private static final int SWIPE_MAX_OFF_PATH = 250;
-		private static final int SWIPE_THRESHOLD_VELOCITY = 200;
+		private static final double SWIPE_MIN_DISTANCE = 0.05; // as a fraction of window width
+		private static final double SWIPE_THRESHOLD_VELOCITY = 1.0; // as a fraction of window width
 		
 		@Override
 		public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            if (Math.abs(e1.getY() - e2.getY()) > SWIPE_MAX_OFF_PATH) {
+			View chatBacklogListView = findViewById(R.id.chatBacklogList);
+			if (chatBacklogListView == null) {
+				return false;
+			}
+			
+			int width = chatBacklogListView.getWidth();
+			double deltaX = (e2.getX() - e1.getX()) / width;
+			double deltaY = (e2.getY() - e1.getY()) / chatBacklogListView.getHeight();
+			double velocityFraction = Math.abs(velocityX) / width;
+			
+			if (Math.abs(deltaY) > Math.abs(deltaX)) {
+            	// Moved more vertically than horizontally...
                 return false;
             }
-            
-			if (e1.getX() - e2.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-				// Swiped from right to left
-				Buffer nextBuffer = boundConnService.getNetworkList(null).getNextBufferFromId(adapter.getBufferId(), false);
-				switchToBuffer(nextBuffer);
-			} else if (e2.getX() - e1.getX() > SWIPE_MIN_DISTANCE && Math.abs(velocityX) > SWIPE_THRESHOLD_VELOCITY) {
-				// Swiped from left to right
-				Buffer prevBuffer = boundConnService.getNetworkList(null).getPreviousBufferFromId(adapter.getBufferId(), false);
-				switchToBuffer(prevBuffer);
-			}
+			
+            if (velocityFraction >= SWIPE_THRESHOLD_VELOCITY) {
+				if (deltaX < 0 && -deltaX > SWIPE_MIN_DISTANCE) {
+					// Swiped from right to left
+					Buffer nextBuffer = boundConnService.getNetworkList(null).getNextBufferFromId(adapter.getBufferId(), false);
+					switchToBuffer(nextBuffer);
+				} else if (deltaX > 0 && deltaX > SWIPE_MIN_DISTANCE) {
+					// Swiped from left to right
+					Buffer prevBuffer = boundConnService.getNetworkList(null).getPreviousBufferFromId(adapter.getBufferId(), false);
+					switchToBuffer(prevBuffer);
+				}
+            }
 			return false;
 		}
 	}
