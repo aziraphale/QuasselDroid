@@ -268,6 +268,7 @@ public class CoreConnService extends Service {
 	}
 
 	public void markBufferAsRead(int bufferId) {
+		System.out.println("markBufferAsRead: "+bufferId);
 		coreConn.requestMarkBufferAsRead(bufferId);
 	}
 

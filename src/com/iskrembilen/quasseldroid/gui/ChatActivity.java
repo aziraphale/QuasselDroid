@@ -47,6 +47,7 @@ import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.GestureDetector;
+import android.view.GestureDetector.OnGestureListener;
 import android.view.GestureDetector.SimpleOnGestureListener;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -60,6 +61,7 @@ import android.view.Window;
 import android.widget.AbsListView;
 import android.widget.AbsListView.OnScrollListener;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
@@ -71,6 +73,7 @@ import com.iskrembilen.quasseldroid.Buffer;
 import com.iskrembilen.quasseldroid.BufferInfo;
 import com.iskrembilen.quasseldroid.IrcMessage;
 import com.iskrembilen.quasseldroid.IrcUser;
+import com.iskrembilen.quasseldroid.Network;
 import com.iskrembilen.quasseldroid.UserCollection;
 import com.iskrembilen.quasseldroid.IrcMessage.Type;
 import com.iskrembilen.quasseldroid.R;
@@ -182,15 +185,25 @@ public class ChatActivity extends Activity{
 			return false;
 		}
 	};
-	
+
 	private void switchToBuffer(Buffer buffer) {
+		if (buffer == null)
+			return;
+		
 		Intent i = new Intent(ChatActivity.this, ChatActivity.class);
 		i.putExtra(BUFFER_ID_EXTRA, buffer.getInfo().id);
 		i.putExtra(BUFFER_NAME_EXTRA, buffer.getInfo().name);
 		startActivity(i);
+//		boundConnService.getNetworkList(null).getBufferById(adapter.getBufferId()).notifyObservers(R.id.BUFFERUPDATE_BACKLOG);
+		
+//		for (Network network : boundConnService.getNetworkList(null).getNetworkList()) {
+//			for (Buffer buf : network.getBuffers().getRawFilteredBufferList()) {
+//				buf.notifyObservers();
+//			}
+//		}
 	}
 	
-	class HorizontalSwipeGestureDetector extends SimpleOnGestureListener {
+	class FlingXListener extends SimpleOnGestureListener {
 		private static final int SWIPE_MIN_DISTANCE = 120;
 		private static final int SWIPE_MAX_OFF_PATH = 250;
 		private static final int SWIPE_THRESHOLD_VELOCITY = 200;
@@ -213,16 +226,33 @@ public class ChatActivity extends Activity{
 			return false;
 		}
 	}
-
-	private GestureDetector gestureDetector = new GestureDetector(new HorizontalSwipeGestureDetector());
+	private GestureDetector flingDetector = new GestureDetector(new FlingXListener());
+    
+	private class DblTapListener extends SimpleOnGestureListener {
+		@Override
+		public boolean onDoubleTap(MotionEvent e) {
+			System.out.println("Double tap detected; switching to next active chat.");
+			Buffer newestChat = boundConnService.getNetworkList(null).getBufferWithMostImportantNewMessage();
+			if (newestChat != null)
+				switchToBuffer(newestChat);
+			
+			return false;
+		}
+    }
+    private GestureDetector dblTapDetector = new GestureDetector(new DblTapListener());
+    
 	View.OnTouchListener gestureListener = new View.OnTouchListener() {
         public boolean onTouch(View v, MotionEvent event) {
-            if (gestureDetector.onTouchEvent(event)) {
+            if (flingDetector.onTouchEvent(event)) {
+                return true;
+            }
+            if (dblTapDetector.onTouchEvent(event)) {
                 return true;
             }
             return false;
         }
     };
+    
 
 	//TODO: fix this again after changing from string to ircusers
 	//Nick autocomplete when pressing the search-button
@@ -307,6 +337,7 @@ public class ChatActivity extends Activity{
 		}
 		if (adapter.buffer.getUnfilteredSize()!= 0){
 			boundConnService.setLastSeen(adapter.getBufferId(), adapter.buffer.getUnfilteredBacklogEntry(adapter.buffer.getUnfilteredSize()-1).messageId);
+			System.out.println("onStop: "+adapter.getBufferId());
 			boundConnService.markBufferAsRead(adapter.getBufferId());
 			boundConnService.setMarkerLine(adapter.getBufferId(), adapter.buffer.getUnfilteredBacklogEntry(adapter.buffer.getUnfilteredSize()-1).messageId);
 		}
@@ -670,6 +701,10 @@ public class ChatActivity extends Activity{
 			}
 
 			boundConnService.registerStatusReceiver(statusReceiver);
+			
+			System.out.println("onServiceConnected: "+buffer.getInfo().id+"/"+buffer.getInfo().name);
+			boundConnService.markBufferAsRead(buffer.getInfo().id);
+			buffer.markAsRead();
 		}
 
 		public void onServiceDisconnected(ComponentName className) {

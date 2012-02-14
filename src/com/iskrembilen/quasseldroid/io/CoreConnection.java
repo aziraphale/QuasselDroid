@@ -134,6 +134,7 @@ public final class CoreConnection {
 	 * @param buffer the buffer id to set as read
 	 */
 	public void requestMarkBufferAsRead(int buffer) {
+		System.out.println("requestMarkBufferAsRead: "+buffer);
 		List<QVariant<?>> retFunc = new LinkedList<QVariant<?>>();
 		retFunc.add(new QVariant<Integer>(RequestType.Sync.getValue(), QVariantType.Int));
 		retFunc.add(new QVariant<String>("BufferSyncer", QVariantType.String));

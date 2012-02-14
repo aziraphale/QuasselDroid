@@ -95,6 +95,47 @@ public class NetworkCollection extends Observable implements Observer {
 		return first;
 	}
 	
+	public Buffer getBufferWithMostImportantNewMessage() {
+		Buffer firstUnreadHighlight = null;
+		Buffer firstUnreadPlain = null;
+		Buffer firstUnreadActivity = null;
+		
+		for (Network network : networkList) {
+			for (Buffer buf : network.getBuffers().getRawFilteredBufferList()) {
+				if (firstUnreadHighlight == null && buf.hasUnseenHighlight()) {
+					firstUnreadHighlight = buf;
+					break;
+				}
+				
+				if (firstUnreadPlain == null && buf.hasUnreadMessage()) {
+					firstUnreadPlain = buf;
+					break;
+				}
+				
+				if (firstUnreadActivity == null && buf.hasUnreadActivity()) {
+					firstUnreadActivity = buf;
+					break;
+				}
+			}
+			
+			if (firstUnreadHighlight != null) {
+				// Found a highlight, so searching any further is pointless
+				break;
+			}
+		}
+		
+		if (firstUnreadHighlight != null)
+			return firstUnreadHighlight;
+		
+		if (firstUnreadPlain != null)
+			return firstUnreadPlain;
+		
+		if (firstUnreadActivity != null)
+			return firstUnreadActivity;
+		
+		return null;
+	}
+	
 	public Network getNetworkById(int networkId) {
 		for(Network network : networkList) {
 			if(network.getId() == networkId)

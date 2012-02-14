@@ -265,6 +265,10 @@ public class Buffer extends Observable implements Comparable<Buffer> {
 		this.setChanged();
 		notifyObservers();
 	}	
+	
+	public void markAsRead() {
+		setLastSeenMessage(backlog.get(backlog.size()-1).messageId);
+	}
 
 	/**
 	 * Set the marker line position for this buffer. Changed from userinteraction of from core sync request
