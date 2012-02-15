@@ -78,6 +78,8 @@ public class LoginActivity extends Activity implements Observer, DialogInterface
 	CheckBox rememberMe;
 	Button connect;
 	
+	CharSequence sharedString;
+	
 	private String hashedCert;//ugly
 
 	/* EXample of how to get a preference
@@ -127,17 +129,34 @@ public class LoginActivity extends Activity implements Observer, DialogInterface
 		connect = (Button)findViewById(R.id.connect_button);
 		connect.setOnClickListener(onConnect);
 		
+		Intent intent = getIntent();
+	    if (Intent.ACTION_SEND.equals(intent.getAction())) {
+		    Bundle extras = intent.getExtras();
+	        if (extras.containsKey(Intent.EXTRA_TEXT)) {
+	            try {
+	                sharedString = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+	            } catch (Exception e) {
+	            	Toast.makeText(this, "Intent Exception: " + e.getMessage(), Toast.LENGTH_LONG).show();
+	            }
+	        }
+	    }
+		
 		statusReceiver = new ResultReceiver(null) {
 
 			@Override
 			protected void onReceiveResult(int resultCode, Bundle resultData) {
 				if (resultCode==CoreConnService.CONNECTION_CONNECTED) {
 					removeDialog(R.id.DIALOG_CONNECTING);
-					LoginActivity.this.startActivity(new Intent(LoginActivity.this, BufferActivity.class));
+					Intent bufferIntent = new Intent(LoginActivity.this, BufferActivity.class);
+					bufferIntent.putExtra(BufferActivity.BUFFER_SHARE_EXTRA, sharedString);
+					sharedString = null;
+					LoginActivity.this.startActivity(bufferIntent);
 				}else if (resultCode==CoreConnService.CONNECTION_DISCONNECTED) {
 					if (resultData!=null){
 						removeDialog(R.id.DIALOG_CONNECTING);
 						Toast.makeText(LoginActivity.this, resultData.getString(CoreConnService.STATUS_KEY), Toast.LENGTH_LONG).show();
+					} else if (sharedString != null && sharedString.length() > 0) {
+			        	Toast.makeText(LoginActivity.this, "Please connect to a core so that your message can be shared...", Toast.LENGTH_LONG).show();
 					}
 				} else if (resultCode == CoreConnService.NEW_CERTIFICATE) {
 					hashedCert = resultData.getString(CoreConnService.CERT_KEY);

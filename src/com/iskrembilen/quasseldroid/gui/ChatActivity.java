@@ -82,8 +82,6 @@ public class ChatActivity extends Activity{
 
 
 	public static final int MESSAGE_RECEIVED = 0;
-	private static final String BUFFER_ID_EXTRA = "bufferid";
-	private static final String BUFFER_NAME_EXTRA = "buffername";
 
 	private BacklogAdapter adapter;
 	private ListView backlogList;
@@ -123,6 +121,12 @@ public class ChatActivity extends Activity{
 		((ListView) findViewById(R.id.chatBacklogList)).setCacheColorHint(0xffffff);
 
         backlogList.setOnTouchListener(gestureListener);
+        
+        Intent intent = getIntent();
+        CharSequence sharedString = intent.getCharSequenceExtra(BufferActivity.BUFFER_SHARE_EXTRA);
+        if (sharedString != null && sharedString.length() > 0) {
+        	((EditText) findViewById(R.id.ChatInputView)).setText(sharedString);
+        }
 
 		statusReceiver = new ResultReceiver(null) {
 
@@ -197,8 +201,8 @@ public class ChatActivity extends Activity{
 			return;
 		
 		Intent i = new Intent(ChatActivity.this, ChatActivity.class);
-		i.putExtra(BUFFER_ID_EXTRA, buffer.getInfo().id);
-		i.putExtra(BUFFER_NAME_EXTRA, buffer.getInfo().name);
+		i.putExtra(BufferActivity.BUFFER_ID_EXTRA, buffer.getInfo().id);
+		i.putExtra(BufferActivity.BUFFER_NAME_EXTRA, buffer.getInfo().name);
 		startActivity(i);
 	}
 	
@@ -380,8 +384,8 @@ public class ChatActivity extends Activity{
 	
 	private void openNickList(Buffer buffer) {
 		Intent i = new Intent(ChatActivity.this, NicksActivity.class);
-		i.putExtra(BUFFER_ID_EXTRA, buffer.getInfo().id);
-		i.putExtra(BUFFER_NAME_EXTRA, buffer.getInfo().name);
+		i.putExtra(BufferActivity.BUFFER_ID_EXTRA, buffer.getInfo().id);
+		i.putExtra(BufferActivity.BUFFER_NAME_EXTRA, buffer.getInfo().name);
 		startActivity(i);
 	}
 
