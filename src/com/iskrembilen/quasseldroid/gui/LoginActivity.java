@@ -38,8 +38,11 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.os.ResultReceiver;
 import android.util.Log;
 import android.view.Menu;
@@ -79,6 +82,7 @@ public class LoginActivity extends Activity implements Observer, DialogInterface
 	Button connect;
 	
 	CharSequence sharedString;
+	Uri sharedUri;
 	
 	private String hashedCert;//ugly
 
@@ -132,13 +136,15 @@ public class LoginActivity extends Activity implements Observer, DialogInterface
 		Intent intent = getIntent();
 	    if (Intent.ACTION_SEND.equals(intent.getAction())) {
 		    Bundle extras = intent.getExtras();
-	        if (extras.containsKey(Intent.EXTRA_TEXT)) {
-	            try {
-	                sharedString = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
-	            } catch (Exception e) {
-	            	Toast.makeText(this, "Intent Exception: " + e.getMessage(), Toast.LENGTH_LONG).show();
-	            }
-	        }
+            try {
+		        if (extras.containsKey(Intent.EXTRA_TEXT)) {
+               		sharedString = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+		        } else if (extras.containsKey(Intent.EXTRA_STREAM)) {
+		        	sharedUri = (Uri) extras.getParcelable(Intent.EXTRA_STREAM);
+		        }
+            } catch (Exception e) {
+            	Log.e(TAG, "Intent Exception: " + e.getMessage());
+            }
 	    }
 		
 		statusReceiver = new ResultReceiver(null) {
@@ -148,8 +154,13 @@ public class LoginActivity extends Activity implements Observer, DialogInterface
 				if (resultCode==CoreConnService.CONNECTION_CONNECTED) {
 					removeDialog(R.id.DIALOG_CONNECTING);
 					Intent bufferIntent = new Intent(LoginActivity.this, BufferActivity.class);
-					bufferIntent.putExtra(BufferActivity.BUFFER_SHARE_EXTRA, sharedString);
+					if (sharedString != null && sharedString.length() > 0) {
+						bufferIntent.putExtra(BufferActivity.BUFFER_SHARE_EXTRA_TEXT, sharedString);
+					} else if (sharedUri != null && sharedUri.toString().length() > 0) {
+						bufferIntent.putExtra(BufferActivity.BUFFER_SHARE_EXTRA_IMAGE, sharedUri);
+					}
 					sharedString = null;
+					sharedUri = null;
 					LoginActivity.this.startActivity(bufferIntent);
 				}else if (resultCode==CoreConnService.CONNECTION_DISCONNECTED) {
 					if (resultData!=null){
@@ -157,6 +168,8 @@ public class LoginActivity extends Activity implements Observer, DialogInterface
 						Toast.makeText(LoginActivity.this, resultData.getString(CoreConnService.STATUS_KEY), Toast.LENGTH_LONG).show();
 					} else if (sharedString != null && sharedString.length() > 0) {
 			        	Toast.makeText(LoginActivity.this, "Please connect to a core so that your message can be shared...", Toast.LENGTH_LONG).show();
+					} else if (sharedUri != null && sharedUri.toString().length() > 0) {
+			        	Toast.makeText(LoginActivity.this, "Please connect to a core so that your image can be shared...", Toast.LENGTH_LONG).show();
 					}
 				} else if (resultCode == CoreConnService.NEW_CERTIFICATE) {
 					hashedCert = resultData.getString(CoreConnService.CERT_KEY);

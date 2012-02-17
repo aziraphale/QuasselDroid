@@ -23,16 +23,30 @@
 
 package com.iskrembilen.quasseldroid.gui;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnMultiChoiceClickListener;
@@ -46,6 +60,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
+import android.util.Base64;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -83,6 +98,8 @@ public class ChatActivity extends Activity{
 
 	public static final int MESSAGE_RECEIVED = 0;
 
+	public static final String IMGUR_DEVELOPER_KEY = "3b809e186ddf9c91f4c0905fd5891ba8";
+	
 	private BacklogAdapter adapter;
 	private ListView backlogList;
 
@@ -123,9 +140,55 @@ public class ChatActivity extends Activity{
         backlogList.setOnTouchListener(gestureListener);
         
         Intent intent = getIntent();
-        CharSequence sharedString = intent.getCharSequenceExtra(BufferActivity.BUFFER_SHARE_EXTRA);
+        CharSequence sharedString = intent.getCharSequenceExtra(BufferActivity.BUFFER_SHARE_EXTRA_TEXT);
+        Uri sharedUri = (Uri) intent.getParcelableExtra(BufferActivity.BUFFER_SHARE_EXTRA_IMAGE);
         if (sharedString != null && sharedString.length() > 0) {
         	((EditText) findViewById(R.id.ChatInputView)).setText(sharedString);
+        } else if (sharedUri != null && sharedUri.toString().length() > 0) {
+        	try {
+    		ContentResolver cr = getContentResolver();
+    		final InputStream is = cr.openInputStream(sharedUri);
+    		
+        	new AlertDialog.Builder(this)
+	            .setIcon(android.R.drawable.ic_dialog_alert)
+	            .setTitle("Proceed with Image Upload?")
+	            .setMessage("Your shared image will first be uploaded to imgur. Do you wish to proceed?")
+	            .setPositiveButton("Yes; Upload Image", new DialogInterface.OnClickListener() {
+	                @Override
+	                public void onClick(DialogInterface dialog, int which) {
+	                	HttpClient httpclient = new DefaultHttpClient();
+	                	HttpPost httppost = new HttpPost("http://api.imgur.com/2/upload.json?key=" + IMGUR_DEVELOPER_KEY);
+
+	                	try {
+	                		ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+	                		readBytesFromInputStreamIntoBAOS(is,  byteBuffer);
+	                		
+	                		String encodedImageData = Base64.encodeToString(byteBuffer.toByteArray(), Base64.DEFAULT);
+	                	    httppost.setEntity(new StringEntity(encodedImageData));
+
+	                	    HttpResponse response = httpclient.execute(httppost);
+	                	    ByteArrayOutputStream jsonBuffer = new ByteArrayOutputStream();
+	                	    readBytesFromInputStreamIntoBAOS(response.getEntity().getContent(), jsonBuffer);
+	                	    String jsonString = new String(jsonBuffer.toByteArray(), "UTF-8");
+
+	                	    Log.d(TAG, "JSON Response: " + jsonString);
+	                	    JSONObject json = new JSONObject(jsonString);
+	                	    String imgurUrl = json.getJSONObject("upload").getJSONObject("links").getString("imgur_page");
+	                	    ((EditText) findViewById(R.id.ChatInputView)).setText(imgurUrl);
+	                	} catch (ClientProtocolException ex) {
+	                		Log.e(TAG, "Shared Media ClientProtocolException: " + ex.getMessage());
+	                	} catch (IOException ex) {
+	                		Log.e(TAG, "Shared Media IOException: " + ex.getMessage());
+	                	} catch (JSONException ex) {
+	                		Log.e(TAG, "Shared Media JSONException: " + ex.getMessage());
+						}
+	                }
+	            })
+	            .setNegativeButton("Cancel", null)
+	            .show();
+        	} catch (FileNotFoundException ex) {
+        		Log.e(TAG, "Shared Media FileNotFoundException: " + ex.getMessage());
+        	}
         }
 
 		statusReceiver = new ResultReceiver(null) {
@@ -139,6 +202,14 @@ public class ChatActivity extends Activity{
 		};
 	}
 
+	public static void readBytesFromInputStreamIntoBAOS(InputStream is, ByteArrayOutputStream byteBuffer) throws IOException {
+		byte[] buffer = new byte[1024];
+
+		int len = 0;
+		while ((len = is.read(buffer)) != -1) {
+		    byteBuffer.write(buffer, 0, len);
+		}
+	}
 
 	OnItemLongClickListener itemLongClickListener = new OnItemLongClickListener() {
 

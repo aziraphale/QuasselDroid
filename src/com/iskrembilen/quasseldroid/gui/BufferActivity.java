@@ -35,6 +35,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ResultReceiver;
@@ -76,7 +77,8 @@ public class BufferActivity extends ExpandableListActivity {
 
 	public static final String BUFFER_ID_EXTRA = "bufferid";
 	public static final String BUFFER_NAME_EXTRA = "buffername";
-	public static final String BUFFER_SHARE_EXTRA = "buffershare";
+	public static final String BUFFER_SHARE_EXTRA_TEXT = "buffersharetxt";
+	public static final String BUFFER_SHARE_EXTRA_IMAGE = "buffershareimg";
 
 	private static final String ITEM_POSITION_KEY = "itempos";
 
@@ -93,6 +95,7 @@ public class BufferActivity extends ExpandableListActivity {
 	private int restoreItemPosition = 0;
 	
 	private CharSequence sharedString;
+	private Uri sharedUri;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -155,28 +158,33 @@ public class BufferActivity extends ExpandableListActivity {
 	protected void onPause() {
 		super.onPause();
 
-		// Leaving the activity for whatever reason, so clear the shared string
+		// Leaving the activity for whatever reason, so clear the shared data
 		sharedString = null;
+		sharedUri = null;
 	}
 	
 	private void handleIntent(Intent intent) {
 		sharedString = null;
+		sharedUri = null;
 		
         try {
-        	if (Intent.ACTION_SEND.equals(intent.getAction())) {
-        		sharedString = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
-        	}
-        	
-        	if (sharedString == null) {
-        		sharedString = intent.getCharSequenceExtra(BufferActivity.BUFFER_SHARE_EXTRA);
-        	}
-        	
+        	Bundle extras = intent.getExtras();
+    		if (extras.containsKey(Intent.EXTRA_TEXT)) {
+    			sharedString = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+    		} else if (extras.containsKey(BufferActivity.BUFFER_SHARE_EXTRA_TEXT)) {
+    			sharedString = intent.getCharSequenceExtra(BufferActivity.BUFFER_SHARE_EXTRA_TEXT);
+    		} else if (extras.containsKey(BufferActivity.BUFFER_SHARE_EXTRA_IMAGE)) {
+    			sharedUri = intent.getParcelableExtra(BufferActivity.BUFFER_SHARE_EXTRA_IMAGE);
+    		}
+
 	    	if (sharedString != null && sharedString.length() > 0) {
 	            Toast.makeText(BufferActivity.this, "Select a channel/query to which to send your shared message...", Toast.LENGTH_LONG).show();
-	            setIntent(new Intent(Intent.ACTION_DEFAULT));
+	    	} else if (sharedUri != null && sharedUri.toString().length() > 0) {
+	    		Toast.makeText(BufferActivity.this, "Select a channel/query to which to send your shared image...", Toast.LENGTH_LONG).show();
 	    	}
+	        setIntent(new Intent(Intent.ACTION_DEFAULT));
 	    } catch (Exception e) {
-	    	Toast.makeText(BufferActivity.this, "Intent Exception: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        	Log.e(TAG, "Intent Exception: " + e.getMessage());
 	    }
 	}
 	
@@ -288,7 +296,8 @@ public class BufferActivity extends ExpandableListActivity {
 		Intent i = new Intent(BufferActivity.this, ChatActivity.class);
 		i.putExtra(BUFFER_ID_EXTRA, buffer.getInfo().id);
 		i.putExtra(BUFFER_NAME_EXTRA, buffer.getInfo().name);
-		i.putExtra(BUFFER_SHARE_EXTRA, sharedString);
+		i.putExtra(BUFFER_SHARE_EXTRA_TEXT, sharedString);
+		i.putExtra(BUFFER_SHARE_EXTRA_IMAGE, sharedUri);
 		startActivity(i);
 	}
 
