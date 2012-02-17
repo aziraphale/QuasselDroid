@@ -1,4 +1,4 @@
-/*
+ /*
     QuasselDroid - Quassel client for Android
  	Copyright (C) 2011 Ken Børge Viktil
  	Copyright (C) 2011 Magnus Fjell
@@ -32,18 +32,13 @@ import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -60,7 +55,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.preference.PreferenceManager;
-import android.util.Base64;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
@@ -83,6 +77,8 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.loopj.android.http.*;
 
 import com.iskrembilen.quasseldroid.Buffer;
 import com.iskrembilen.quasseldroid.BufferInfo;
@@ -156,32 +152,63 @@ public class ChatActivity extends Activity{
 	            .setPositiveButton("Yes; Upload Image", new DialogInterface.OnClickListener() {
 	                @Override
 	                public void onClick(DialogInterface dialog, int which) {
-	                	HttpClient httpclient = new DefaultHttpClient();
-	                	HttpPost httppost = new HttpPost("http://api.imgur.com/2/upload.json?key=" + IMGUR_DEVELOPER_KEY);
-
-	                	try {
-	                		ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
-	                		readBytesFromInputStreamIntoBAOS(is,  byteBuffer);
+	                	
+	                	AsyncHttpClient client = new AsyncHttpClient();
+	                	
+	                	RequestParams params = new RequestParams();
+	                	params.put("image", is);
+	                	
+		                client.post(ChatActivity.this, "http://api.imgur.com/2/upload.json?key=" + IMGUR_DEVELOPER_KEY, params, new JsonHttpResponseHandler() {
+	                		ProgressDialog waitDialog;
 	                		
-	                		String encodedImageData = Base64.encodeToString(byteBuffer.toByteArray(), Base64.DEFAULT);
-	                	    httppost.setEntity(new StringEntity(encodedImageData));
-
-	                	    HttpResponse response = httpclient.execute(httppost);
-	                	    ByteArrayOutputStream jsonBuffer = new ByteArrayOutputStream();
-	                	    readBytesFromInputStreamIntoBAOS(response.getEntity().getContent(), jsonBuffer);
-	                	    String jsonString = new String(jsonBuffer.toByteArray(), "UTF-8");
-
-	                	    Log.d(TAG, "JSON Response: " + jsonString);
-	                	    JSONObject json = new JSONObject(jsonString);
-	                	    String imgurUrl = json.getJSONObject("upload").getJSONObject("links").getString("imgur_page");
-	                	    ((EditText) findViewById(R.id.ChatInputView)).setText(imgurUrl);
-	                	} catch (ClientProtocolException ex) {
-	                		Log.e(TAG, "Shared Media ClientProtocolException: " + ex.getMessage());
-	                	} catch (IOException ex) {
-	                		Log.e(TAG, "Shared Media IOException: " + ex.getMessage());
-	                	} catch (JSONException ex) {
-	                		Log.e(TAG, "Shared Media JSONException: " + ex.getMessage());
-						}
+	                	    @Override
+	                	    public void onSuccess(JSONObject json) {
+	                	    	waitDialog.hide();
+	                	    	
+	    	                	try {
+			                	    Log.d(TAG, "JSON Response: " + json.toString());
+			                	    String imgurUrl = json.getJSONObject("upload").getJSONObject("links").getString("imgur_page");
+			                	    
+			                	    EditText inputView = (EditText) findViewById(R.id.ChatInputView);
+			                	    if (inputView.getText().length() > 0) {
+			                	    	if (inputView.getText().charAt(inputView.getText().length() - 1) != ' ') {
+			                	    		inputView.append(" ");
+			                	    	}
+			                	    }
+		                	    	inputView.append(imgurUrl);
+	    	                	} catch (JSONException ex) {
+	    	                		Log.e(TAG, "Shared Media JSONException: " + ex.getMessage());
+	    						}
+	                	    }
+	                	    
+	                	    @Override
+	                	    public void onStart() {
+	                	    	Log.d(TAG, "AysncHttpClient Start");
+	                	    	
+	                	    	waitDialog = new ProgressDialog(ChatActivity.this);
+	                	    	waitDialog.setIndeterminate(true);
+	                	    	waitDialog.setMessage("Image uploading; please wait...");
+	                	    	waitDialog.show();
+	                	    }
+	                	    
+	                	    @Override
+	                	    public void onFailure(Throwable e) {
+	                	    	Log.d(TAG, "AysncHttpClient Failed: " + e.getMessage());
+	                	    	waitDialog.hide();
+	                	    	
+	                	    	new AlertDialog.Builder(ChatActivity.this)
+	                	    		.setIcon(android.R.drawable.ic_dialog_alert)
+	                	    		.setTitle("Upload Failed!")
+	                	    		.setMessage("Uploading your image failed with this error: " + e.getMessage())
+	                	    		.show();
+	                	    }
+	                	    
+	                	    @Override
+	                	    public void onFinish() {
+	                	    	Log.d(TAG, "AysncHttpClient Finished");
+	                	    	waitDialog.hide();
+	                	    }
+	                	});
 	                }
 	            })
 	            .setNegativeButton("Cancel", null)
