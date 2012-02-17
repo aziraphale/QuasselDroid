@@ -58,6 +58,7 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -148,7 +149,7 @@ public class ChatActivity extends Activity{
         	new AlertDialog.Builder(this)
 	            .setIcon(android.R.drawable.ic_dialog_alert)
 	            .setTitle("Proceed with Image Upload?")
-	            .setMessage("Your shared image will first be uploaded to imgur. Do you wish to proceed?")
+	            .setMessage("Your shared image will first be uploaded to Imgur. Do you wish to proceed?")
 	            .setPositiveButton("Yes; Upload Image", new DialogInterface.OnClickListener() {
 	                @Override
 	                public void onClick(DialogInterface dialog, int which) {
@@ -181,6 +182,14 @@ public class ChatActivity extends Activity{
 	    						}
 	                	    }
 	                	    
+	                	    private void runInBackground() {
+	                	    	waitDialog.hide();
+	                	    	Toast backgroundInfo = Toast
+	                	    			.makeText(ChatActivity.this, "Resulting Imgur URL will be inserted into the input area when the upload completes.", Toast.LENGTH_LONG);
+	                	    	backgroundInfo.setGravity(Gravity.TOP, 0, 0);
+	                	    	backgroundInfo.show();
+	                	    }
+	                	    
 	                	    @Override
 	                	    public void onStart() {
 	                	    	Log.d(TAG, "AysncHttpClient Start");
@@ -188,6 +197,20 @@ public class ChatActivity extends Activity{
 	                	    	waitDialog = new ProgressDialog(ChatActivity.this);
 	                	    	waitDialog.setIndeterminate(true);
 	                	    	waitDialog.setMessage("Image uploading; please wait...");
+	                	    	waitDialog.setCancelable(true);
+	                	    	waitDialog.setCanceledOnTouchOutside(true);
+	                	    	waitDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+									@Override
+									public void onCancel(DialogInterface arg0) {
+										runInBackground();
+									}
+								});
+	                	    	waitDialog.setButton("Run in Background", new DialogInterface.OnClickListener() {
+	                	    		@Override
+	                	    		public void onClick(DialogInterface dialog, int which) {
+	                	    			runInBackground();
+	                	    		}
+	                	    	});
 	                	    	waitDialog.show();
 	                	    }
 	                	    
