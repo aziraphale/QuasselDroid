@@ -5,6 +5,48 @@ Quassel is a distributed, decentralized IRC client, written using C++ and Qt.
 QuasselDroid is a pure-java client for the Quassel core, allowing you to
 connect to your Quassel core using your Android (TM) phone.
 
++------------------------------------------------------------------------------
+|                         NOTES ABOUT THIS FORK
+| This fork was created to fix some bugs that were affecting me (Aziraphale)
+|  and a few friends, and implement some features that the same people would
+|  find useful. Anyone else is, of course, welcome to download and use one of
+|  our builds, but if it's useful for anyone else then that is merely a happy
+|  coincidence - we don't have the time nor inclination to make this any kind
+|  of "official" project, or to offer any kind of real support if our builds
+|  crash or prompt your Android device to create Skynet.
+| 
+| That said, we'll be making a few pull requests, so hopefully some of our
+|  efforts will benefit a slightly wider audience. Feel free to report bugs
+|  or make feature requests in our issue tracker, but understand that we're
+|  not likely to want to put much effort into things that won't directly
+|  benefit us.
+| 
+| ADDITIONAL AUTHORS:
+|  * Andrew Gillard (Aziraphale)
+|  * Ben Roberts (optiz0r)
+| 
+| Here is what we've added/changed so far:
+|  * Action (/me) messages will now be considered "normal messages" (blue) in
+|    the list of buffers, rather than them being treated like mode changes.
+|  * Support for multiple URLs per message via an alert dialog.
+|  * Improved URL-matching.
+|  * Swipe left/right on a chat view to switch chats.
+|  * Fixed colors/formatting.
+|  * Added the ability to share text and images into QuasselDroid from other
+|    applications. Images are first uploaded to Imgur, then the Imgur URL
+|    shared with IRC.
+|  * Stopped the soft keyboard being shown automatically when switching to a
+|    chat view.
+|  * Added an option to keep the screen turned on (and bright) when the
+|    device is connected to an external power source (e.g. when the phone is
+|    in a desk dock).
+|  * Remembers the messages you've sent on a per-buffer basis, allowing
+|    access to them via the up/down arrow keys. Will also remember these
+|    messages across disconnections (no more losing messages you've typed
+|    when your phone loses signal!)
+|  * Also keeps typed-but-not-sent messages when you switch between chats.
++------------------------------------------------------------------------------
+
 No requirements apart from a recently modern Android SDK (2.1 should be
 sufficient, no guarantees in either directions, though).
 
