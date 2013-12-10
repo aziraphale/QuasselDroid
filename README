@@ -47,14 +47,23 @@ connect to your Quassel core using your Android (TM) phone.
 |  * Also keeps typed-but-not-sent messages when you switch between chats.
 +------------------------------------------------------------------------------
 
-No requirements apart from a recently modern Android SDK (2.1 should be
-sufficient, no guarantees in either directions, though).
+It requires a recent Android SDK , and the new build system.
+- http://developer.android.com/sdk/index.html and
+- http://tools.android.com/tech-docs/new-build-system#TOC-Contributing
 
 It uses the following extra projects (though all support libraries are included
 for your convenience):
     - Otto: http://square.github.com/otto/
     - Android Support Library: http://developer.android.com/tools/extras/support-library.html
     - Crittercism: https://www.crittercism.com/developers/docs-android
+    - ActionBarSherlock: http://actionbarsherlock.com/
+NB! Android Support Library requires the corresponding package to be installed in the SDK manager 
+
+Building:
+Building is done using gradle. Run "gradlew tasks" to see possible build tasks. Some useful tasks are
+assemble and installDebug
+NB! I have found some bugs with the build system where i have to run --info and or --stacktrace to not get errors
+during build process.
 
 
 We do support encryption, but no compression support for now (qCompress should,
@@ -73,5 +82,6 @@ Ken Børge Viktil (Kenji)
     (GUI, Android stuff)
 
 
-Homepage: http://github.com/sandsmark/QuasselDroid 
+Homepage: http://github.com/sandsmark/QuasselDroid
+Beta Builds: https://plus.google.com/communities/104094956084217666662
 
