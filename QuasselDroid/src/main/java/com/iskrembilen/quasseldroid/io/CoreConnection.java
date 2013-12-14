@@ -384,7 +384,7 @@ public final class CoreConnection {
         Date date = new Date();
         initial.put("ClientDate", new QVariant<String>(dateFormat.format(date), QVariantType.String));
         initial.put("UseSsl", new QVariant<Boolean>(ssl, QVariantType.Bool));
-        initial.put("ClientVersion", new QVariant<String>("v0.6.1 (dist-<a href='http://git.quassel-irc.org/?p=quassel.git;a=commit;h=611ebccdb6a2a4a89cf1f565bee7e72bcad13ffb'>611ebcc</a>)", QVariantType.String));
+        initial.put("ClientVersion", new QVariant<String>("Quasseldroid " + service.getVersionName(), QVariantType.String));
         initial.put("UseCompression", new QVariant<Boolean>(false, QVariantType.Bool));
         initial.put("MsgType", new QVariant<String>("ClientInit", QVariantType.String));
         initial.put("ProtocolVersion", new QVariant<Integer>(10, QVariantType.Int));
@@ -396,14 +396,22 @@ public final class CoreConnection {
         updateInitProgress("Getting core info...");
         inStream = new QDataInputStream(socket.getInputStream());
         Map<String, QVariant<?>> reply = readQVariantMap();
-        coreInfo = new CoreInfo();
-        coreInfo.setCoreInfo((String) reply.get("CoreInfo").getData());
-        coreInfo.setSupportSsl((Boolean) reply.get("SupportSsl").getData());
-        coreInfo.setConfigured((Boolean) reply.get("Configured").getData());
-        coreInfo.setLoginEnabled((Boolean) reply.get("LoginEnabled").getData());
-        coreInfo.setMsgType((String) reply.get("MsgType").getData());
-        coreInfo.setProtocolVersion(((Long) reply.get("ProtocolVersion").getData()).intValue());
-        coreInfo.setSupportsCompression((Boolean) reply.get("SupportsCompression").getData());
+        if(reply.get("MsgType").toString().equals("ClientInitAck")){
+            coreInfo = new CoreInfo();
+            coreInfo.setCoreInfo((String) reply.get("CoreInfo").getData());
+            coreInfo.setSupportSsl((Boolean) reply.get("SupportSsl").getData());
+            coreInfo.setConfigured((Boolean) reply.get("Configured").getData());
+            coreInfo.setLoginEnabled((Boolean) reply.get("LoginEnabled").getData());
+            coreInfo.setMsgType((String) reply.get("MsgType").getData());
+            coreInfo.setProtocolVersion(((Long) reply.get("ProtocolVersion").getData()).intValue());
+            coreInfo.setSupportsCompression((Boolean) reply.get("SupportsCompression").getData());
+        }else{
+            if(reply.get("MsgType").toString().equals("ClientInitReject")){
+                throw new IOException((String) reply.get("Error").getData());
+            }else{
+                throw new IOException("Core sent unexpected \"" + reply.get("MsgType").toString() + "\" response!");
+            }
+        }
 
         //Check that the protocol version is at least 10
         if (coreInfo.getProtocolVersion() < 10)
