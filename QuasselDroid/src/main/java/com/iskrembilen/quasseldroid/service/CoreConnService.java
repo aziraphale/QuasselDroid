@@ -343,7 +343,7 @@ public class CoreConnService extends Service {
         networks.clear();
 
         acquireWakeLockIfEnabled();
-        coreConn = new CoreConnection(coreId, address, port, username, password, ssl, this);
+        coreConn = new CoreConnection(coreId, address, port, username, password, this);
         startForeground(R.id.NOTIFICATION, notificationManager.getConnectingNotification());
     }
 
