@@ -258,7 +258,7 @@ public class ChatFragment extends SherlockFragment {
         if (adapter.buffer != null) {
             adapter.buffer.setDisplayed(false);
 
-            //Dont save position if list is at bottom
+            //Don't save position if list is at bottom
             if (backlogList.getLastVisiblePosition() == adapter.getCount() - 1) {
                 adapter.buffer.setTopMessageShown(0);
             } else {
@@ -320,6 +320,12 @@ public class ChatFragment extends SherlockFragment {
         public void setBuffer(Buffer buffer, NetworkCollection networks) {
             this.buffer = buffer;
             buffer.addObserver(this);
+            setTopic();
+            notifyDataSetChanged();
+            backlogList.scrollTo(backlogList.getScrollX(), backlogList.getScrollY());
+        }
+
+        public void setTopic(){
             String topic = "";
             if (buffer.getInfo().type == BufferInfo.Type.QueryBuffer) {
                 topic = buffer.getInfo().name;
@@ -335,8 +341,6 @@ public class ChatFragment extends SherlockFragment {
             }
             topicView.setText(topic);
             topicViewFull.setText(topic);
-            notifyDataSetChanged();
-            backlogList.scrollTo(backlogList.getScrollX(), backlogList.getScrollY());
         }
 
 
@@ -348,7 +352,7 @@ public class ChatFragment extends SherlockFragment {
 
         @Override
         public IrcMessage getItem(int position) {
-            //TODO: QriorityQueue is fucked, we dont want to convert to array here, so change later
+            //TODO: PriorityQueue is fucked, we don't want to convert to array here, so change later
             return (IrcMessage) buffer.getBacklogEntry(position);
         }
 
@@ -530,6 +534,10 @@ public class ChatFragment extends SherlockFragment {
                     int topId = getListTopMessageId();
                     notifyDataSetChanged();
                     setListTopMessage(topId);
+                    break;
+                case R.id.BUFFERUPDATE_TOPICCHANGED:
+                    setTopic();
+                    notifyDataSetChanged();
                     break;
                 default:
                     notifyDataSetChanged();

@@ -300,9 +300,9 @@ public final class CoreConnection {
     }
 
     /**
-     * Requests moar backlog for a give buffer
+     * Requests more backlog for a give buffer
      *
-     * @param buffer Buffer id to request moar for
+     * @param buffer Buffer id to request more for
      */
     public void requestMoreBacklog(int buffer, int amount) {
         if (buffers.get(buffer).getUnfilteredSize() == 0) {
@@ -586,11 +586,11 @@ public final class CoreConnection {
 
         //Get backlog if user selected a fixed amount
         if (!options.getBoolean(service.getString(R.string.preference_fetch_to_last_seen), false)) {
-            int backlogAmout = Integer.parseInt(options.getString(service.getString(R.string.preference_initial_backlog_limit), "1"));
+            int backlogAmount = Integer.parseInt(options.getString(service.getString(R.string.preference_initial_backlog_limit), "1"));
             initBacklogBuffers = 0;
             for (Buffer buffer : buffers.values()) {
                 initBacklogBuffers += 1;
-                requestMoreBacklog(buffer.getInfo().id, backlogAmout);
+                requestMoreBacklog(buffer.getInfo().id, backlogAmount);
             }
         }
 
@@ -695,7 +695,7 @@ public final class CoreConnection {
 
                 // Sanity check, check that we can decode our own stuff before sending it off
                 //QDataInputStream bis = new QDataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-                //QMetaTypeRegistry.instance().getTypeForId(QMetaType.Type.QVariant.getValue()).getSerializer().unserialize(bis, DataStreamVersion.Qt_4_2);
+                //QMetaTypeRegistry.instance().getTypeForId(QMetaType.Type.QVariant.getValue()).getSerializer().deserialize(bis, DataStreamVersion.Qt_4_2);
 
                 // Send data
                 outStream.write(baos.toByteArray());
@@ -736,7 +736,7 @@ public final class CoreConnection {
      * @throws EmptyQVariantException
      */
     private Map<String, QVariant<?>> readQVariantMap() throws IOException, EmptyQVariantException {
-        // Length of this packet (why do they send this? noone knows!).
+        // Length of this packet (why do they send this? no-one knows!).
         inStream.readUInt(32);
         QVariant<Map<String, QVariant<?>>> v = (QVariant<Map<String, QVariant<?>>>) QMetaTypeRegistry.unserialize(QMetaType.Type.QVariant, inStream);
 
@@ -893,7 +893,7 @@ public final class CoreConnection {
             while (running) {
                 try {
                     if (networkInitComplete && packageQueue.size() > 0) {
-                        Log.e(TAG, "Queue not empty, retrive element");
+                        Log.e(TAG, "Queue not empty, retrieve element");
                         packedFunc = packageQueue.poll();
                     } else {
                         packedFunc = readQVariantList();
@@ -906,7 +906,7 @@ public final class CoreConnection {
                     //Log.i(TAG, "Slow core is slow: " + (System.currentTimeMillis() - startWait) + "ms");
 
                     //We received a package, aka we are not disconnected, restart timer
-                    //Log.i(TAG, "Package reviced, reseting countdown");
+                    //Log.i(TAG, "Package received, resetting countdown");
                     checkAlive.cancel();
                     checkAlive.start();
 
@@ -1046,7 +1046,7 @@ public final class CoreConnection {
                                         }
                                     }
                                     if (!foundChannel)
-                                        Log.e(TAG, "A channel in a network has no coresponding buffer object " + chanName);
+                                        Log.e(TAG, "A channel in a network has no corresponding buffer object " + chanName);
                                 }
 
                                 Log.i(TAG, "Sending network " + network.getName() + " to service");
@@ -1098,7 +1098,7 @@ public final class CoreConnection {
                                         msg.arg2 = msgId;
                                         msg.sendToTarget();
                                     } else {
-                                        Log.e(TAG, "Getting last seen message for buffer we dont have " + bufferId);
+                                        Log.e(TAG, "Getting last seen message for buffer we don't have " + bufferId);
                                     }
                                 }
                                 // Parse out the marker lines for buffers if the core supports them
@@ -1114,7 +1114,7 @@ public final class CoreConnection {
                                             msg.arg2 = msgId;
                                             msg.sendToTarget();
                                         } else {
-                                            Log.e(TAG, "Getting markerlinemessage for buffer we dont have " + bufferId);
+                                            Log.e(TAG, "Getting markerlinemessage for buffer we don't have " + bufferId);
                                         }
                                     }
                                 } else {
@@ -1189,10 +1189,10 @@ public final class CoreConnection {
                                 BufferCollection.orderAlphabetical = (Boolean) map.get("sortAlphabetically").getData();
 
 
-                                //TODO: mabye send this in a bulk to the service so it wont sort and shit every time
+                                //TODO: maybe send this in a bulk to the service so it wont sort and shit every time
                                 for (QVariant bufferId : tempList) {
                                     if (!buffers.containsKey(bufferId.getData())) {
-                                        Log.e(TAG, "TempList, dont't have buffer: " + bufferId.getData());
+                                        Log.e(TAG, "TempList, don't have buffer: " + bufferId.getData());
                                         continue;
                                     }
                                     Message msg = service.getHandler().obtainMessage(R.id.SET_BUFFER_TEMP_HIDDEN);
@@ -1203,7 +1203,7 @@ public final class CoreConnection {
 
                                 for (QVariant bufferId : permList) {
                                     if (!buffers.containsKey(bufferId.getData())) {
-                                        Log.e(TAG, "TempList, dont't have buffer: " + bufferId.getData());
+                                        Log.e(TAG, "TempList, don't have buffer: " + bufferId.getData());
                                         continue;
                                     }
                                     Message msg = service.getHandler().obtainMessage(R.id.SET_BUFFER_PERM_HIDDEN);
@@ -1219,7 +1219,7 @@ public final class CoreConnection {
                                         maxBufferId = id;
                                     }
                                     if (!buffers.containsKey(id)) {
-                                        System.err.println("got buffer info for non-existant buffer id: " + id);
+                                        Log.w(TAG, "Got buffer info for non-existent buffer id: " + id);
                                         continue;
                                     }
                                     Message msg = service.getHandler().obtainMessage(R.id.SET_BUFFER_ORDER);
@@ -1242,7 +1242,6 @@ public final class CoreConnection {
 
                                     order++;
                                 }
-                                updateInitProgress("Receiving backlog");
 
                             }
 						/*
@@ -1296,6 +1295,7 @@ public final class CoreConnection {
                                 Collections.reverse(data); // Apparently, we receive them in the wrong order
 
                                 if (!initComplete) { //We are still initializing backlog for the first time
+                                    updateInitProgress("Receiving backlog");
                                     boolean preferenceParseColors = PreferenceManager.getDefaultSharedPreferences(service).getBoolean(service.getString(R.string.preference_colored_text), false);
                                     for (QVariant<?> message : data) {
                                         IrcMessage msg = (IrcMessage) message.getData();
@@ -1408,6 +1408,16 @@ public final class CoreConnection {
                                 int networkLatency = (Integer) packedFunc.remove(0).getData();
                                 int networkId = Integer.parseInt(objectName);
                                 service.getHandler().obtainMessage(R.id.SET_NETWORK_LATENCY, networkId, networkLatency, null).sendToTarget();
+                            } else if (className.equals("Network") && function.equals("setNetworkName")) {
+                                Log.d(TAG, "Sync: Network -> setNetworkName");
+                                String networkName = (String) packedFunc.remove(0).getData();
+                                int networkId = Integer.parseInt(objectName);
+                                service.getHandler().obtainMessage(R.id.SET_NETWORK_NAME, networkId, 0, networkName).sendToTarget();
+                            } else if (className.equals("Network") && function.equals("setCurrentServer")) {
+                                Log.d(TAG, "Sync: Network -> setCurrentServer");
+                                String currentServer = (String) packedFunc.remove(0).getData();
+                                int networkId = Integer.parseInt(objectName);
+                                service.getHandler().obtainMessage(R.id.SET_NETWORK_CURRENT_SERVER, networkId, 0, currentServer).sendToTarget();
                             } else if (className.equals("IrcUser") && function.equals("partChannel")) {
                                 Log.d(TAG, "Sync: IrcUser -> partChannel");
                                 String[] tmp = objectName.split("/", 2);
@@ -1498,6 +1508,25 @@ public final class CoreConnection {
                                 bundle.putString("channel", channel);
 
                                 service.getHandler().obtainMessage(R.id.USER_REMOVE_MODE, networkId, 0, bundle).sendToTarget();
+                            } else if (className.equals("IrcChannel") && function.equals("setTopic")) {
+                                Log.d(TAG, "Sync: IrcChannel -> setTopic");
+                                String[] tmp = objectName.split("/", 2);
+                                int networkId = Integer.parseInt(tmp[0]);
+                                String bufferName = tmp[1];
+
+                                String topic = (String) packedFunc.remove(0).getData();
+                                boolean found = false;
+                                for (Buffer buffer : buffers.values()) {
+                                    if (buffer.getInfo().name.equalsIgnoreCase(bufferName) && buffer.getInfo().networkId == networkId) {
+                                        found = true;
+                                        Message msg = service.getHandler().obtainMessage(R.id.CHANNEL_TOPIC_CHANGED, networkId, buffer.getInfo().id, topic);
+                                        msg.sendToTarget();
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    Log.e(TAG, "Could not find buffer for IrcChannel setTopic");
+                                }
                             } else if (className.equals("BufferSyncer") && function.equals("setLastSeenMsg")) {
                                 Log.d(TAG, "Sync: BufferSyncer -> setLastSeenMsg");
                                 int bufferId = (Integer) packedFunc.remove(0).getData();
@@ -1521,7 +1550,7 @@ public final class CoreConnection {
 							 */
                             } else if (className.equals("BufferSyncer") && function.equals("markBufferAsRead")) {
                                 Log.d(TAG, "Sync: BufferSyncer -> markBufferAsRead");
-                                //TODO: this basicly does shit. So find out if it effects anything and what it should do
+                                //TODO: this basically does shit. So find out if it effects anything and what it should do
                                 //int buffer = (Integer) packedFunc.remove(0).getData();
                                 //buffers.get(buffer).setRead();
                             } else if (className.equals("BufferSyncer") && function.equals("removeBuffer")) {
@@ -1546,7 +1575,7 @@ public final class CoreConnection {
                                 Log.d(TAG, "Sync: BufferViewConfig -> addBuffer");
                                 int bufferId = (Integer) packedFunc.remove(0).getData();
                                 if (!buffers.containsKey(bufferId)) {
-//                                System.err.println("got buffer info for non-existant buffer id: " + bufferId);
+//                                System.err.println("got buffer info for non-existent buffer id: " + bufferId);
                                     continue;
                                 }
                                 if (bufferId > maxBufferId) {

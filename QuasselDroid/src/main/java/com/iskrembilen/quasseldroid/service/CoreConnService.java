@@ -99,7 +99,7 @@ public class CoreConnService extends Service {
     private static final String TAG = CoreConnService.class.getSimpleName();
 
     /**
-     * Id for result code in the resultReciver that is going to notify the
+     * Id for result code in the resultReceiver that is going to notify the
      * activity currently on screen about the change
      */
     public static final int CONNECTION_DISCONNECTED = 0;
@@ -610,7 +610,6 @@ public class CoreConnService extends Service {
                     BusProvider.getInstance().post(new UnsupportedProtocolEvent());
                     break;
                 case R.id.INIT_PROGRESS:
-                    initDone = false;
                     initReason = (String) msg.obj;
                     BusProvider.getInstance().post(new InitProgressEvent(false, initReason));
                     break;
@@ -721,6 +720,12 @@ public class CoreConnService extends Service {
                     break;
                 case R.id.SET_NETWORK_LATENCY:
                     networks.getNetworkById(msg.arg1).setLatency(msg.arg2);
+                    break;
+                case R.id.SET_NETWORK_NAME:
+                    networks.getNetworkById(msg.arg1).setName((String) msg.obj);
+					break;
+                case R.id.SET_NETWORK_CURRENT_SERVER:
+                    networks.getNetworkById(msg.arg1).setServer((String) msg.obj);
                     break;
                 case R.id.RENAME_BUFFER:
                     networks.getBufferById(msg.arg1).setName((String) msg.obj);
