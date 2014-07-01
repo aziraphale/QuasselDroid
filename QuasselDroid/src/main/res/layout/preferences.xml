@@ -27,7 +27,6 @@
             android:summary="How many lines to fetch on scroll"
             android:title="Dynamic backlog amount" />
     </PreferenceCategory>
-    >
 
     <PreferenceCategory android:title="Quassel">
 
