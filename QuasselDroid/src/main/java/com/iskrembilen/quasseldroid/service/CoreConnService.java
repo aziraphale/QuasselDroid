@@ -145,6 +145,7 @@ public class CoreConnService extends Service {
 
     private boolean preferenceReconnect;
     private boolean preferenceReconnectWifiOnly;
+    private boolean preferenceReconnectPeriodically;
 
     private long coreId;
     private String address;
@@ -183,12 +184,12 @@ public class CoreConnService extends Service {
         super.onCreate();
         Log.i(TAG, "Service created");
         incomingHandler = new IncomingHandler();
-        notificationManager = new QuasseldroidNotificationManager(this);
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         preferenceParseColors = preferences.getBoolean(getString(R.string.preference_colored_text), false);
         preferenceUseWakeLock = preferences.getBoolean(getString(R.string.preference_wake_lock), false);
         preferenceReconnect = preferences.getBoolean(getString(R.string.preference_reconnect), false);
         preferenceReconnectWifiOnly = preferences.getBoolean(getString(R.string.preference_reconnect_on_wifi_only), false);
+        preferenceReconnectPeriodically = preferences.getBoolean(getString(R.string.preference_reconnect_periodically), false);
         preferenceListener = new OnSharedPreferenceChangeListener() {
 
             @Override
@@ -205,14 +206,15 @@ public class CoreConnService extends Service {
                     preferenceReconnectWifiOnly = preferences.getBoolean(getString(R.string.preference_reconnect_on_wifi_only), false);
                 } else if(key.equals(getString(R.string.preference_reconnect_counter))) {
                     resetReconnectCounter();
+                } else if(key.equals(getString(R.string.preference_reconnect_periodically))) {
+                    preferenceReconnectPeriodically = preferences.getBoolean(getString(R.string.preference_reconnect_periodically), false);
                 }
             }
         };
         preferences.registerOnSharedPreferenceChangeListener(preferenceListener);
         BusProvider.getInstance().register(this);
-        registerReceiver(receiver, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
+        registerReceiver(receiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         resetReconnectCounter();
-        startForeground(R.id.NOTIFICATION, notificationManager.getDisconnectedNotification());
     }
 
     @Override
@@ -327,8 +329,11 @@ public class CoreConnService extends Service {
             coreConn.closeConnection();
         coreConn = null;
         networks = null;
-        stopForeground(false);
+        stopForeground(true);
         initDone = false;
+        isConnecting = false;
+        notificationManager = null;
+        BusProvider.getInstance().post(new ConnectionChangedEvent(Status.Disconnected));
         reconnectCounter = Integer.valueOf(preferences.getString(
             getString(R.string.preference_reconnect_counter), RECONNECT_COUNTER_DEFAULT));
     }
@@ -336,6 +341,10 @@ public class CoreConnService extends Service {
     public void connectToCore() {
         Log.i(TAG, "Connecting to core: " + address + ":" + port
         + " with username " + username);
+        if(coreConn != null) {
+            disconnectFromCore();
+        }
+        notificationManager = new QuasseldroidNotificationManager(this);
         networks = NetworkCollection.getInstance();
         networks.clear();
 
@@ -764,8 +773,7 @@ public class CoreConnService extends Service {
         }
     }
 
-    private void reconnect(String message)
-    {
+    private void reconnect(String message) {
         if (coreConn != null) {
             coreConn.closeConnection();
         }
@@ -845,22 +853,20 @@ public class CoreConnService extends Service {
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            final ConnectivityManager connMgr = (ConnectivityManager)
-                    context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if(preferenceReconnect && !preferenceReconnectPeriodically && coreConn == null && !isConnected()) {
+                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
-            final android.net.NetworkInfo wifi =
-                    connMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                if (activeNetwork != null && activeNetwork.isConnected()) {
+                    boolean isWiFi = activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
 
-            if (!preferences.getBoolean(getString(R.string.preference_reconnect_periodically), false)) {
-                if (wifi != null && wifi.isConnectedOrConnecting() && preferenceReconnect && !isConnected() &&
-                        checkForMeteredCondition()) {
-                    Log.d(TAG, "Reconnecting on Wifi");
-                    connectToCore();
-                } else if (connMgr.getActiveNetworkInfo() != null &&
-                        connMgr.getActiveNetworkInfo().isConnectedOrConnecting() &&
-                        preferenceReconnect && !preferenceReconnectWifiOnly && !isConnected()) {
-                    Log.d(TAG, "Reconnecting (not Wifi)");
-                    connectToCore();
+                    if (isWiFi && checkForMeteredCondition()) {
+                        Log.d(TAG, "Reconnecting on Wifi");
+                        connectToCore();
+                    } else if(!preferenceReconnectWifiOnly) {
+                        Log.d(TAG, "Reconnecting (not Wifi)");
+                        connectToCore();
+                    }
                 }
             }
         }
