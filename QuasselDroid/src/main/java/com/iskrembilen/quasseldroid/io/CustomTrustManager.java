@@ -34,9 +34,8 @@ class CustomTrustManager implements javax.net.ssl.X509TrustManager {
 
     CustomTrustManager(CoreConnection coreConnection) throws GeneralSecurityException {
         this.coreConnection = coreConnection;
-        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        tmf.init(ks);
+        tmf.init((KeyStore)null);
 
         TrustManager tms[] = tmf.getTrustManagers();
 
@@ -79,7 +78,7 @@ class CustomTrustManager implements javax.net.ssl.X509TrustManager {
 			 * or throw a security exception to let the user know that something is wrong.
 			 */
             String hashedCert = hash(chain[0].getEncoded());
-            QuasselDbHelper dbHelper = new QuasselDbHelper(coreConnection.service);
+            QuasselDbHelper dbHelper = new QuasselDbHelper(coreConnection.applicationContext);
             dbHelper.open();
             String storedCert = dbHelper.getCertificate(coreConnection.getCoreId());
             dbHelper.close();

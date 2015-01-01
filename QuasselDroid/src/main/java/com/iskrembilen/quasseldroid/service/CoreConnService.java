@@ -124,7 +124,7 @@ public class CoreConnService extends Service {
     private final IBinder binder = new LocalBinder();
     private boolean requestedDisconnect;
 
-    Handler incomingHandler;
+    IncomingHandler incomingHandler;
 
     SharedPreferences preferences;
 
@@ -186,7 +186,6 @@ public class CoreConnService extends Service {
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "Service created");
-        incomingHandler = new IncomingHandler();
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         preferenceParseColors = preferences.getBoolean(getString(R.string.preference_colored_text), false);
         preferenceUseWakeLock = preferences.getBoolean(getString(R.string.preference_wake_lock), false);
@@ -344,6 +343,8 @@ public class CoreConnService extends Service {
         initDone = false;
         isConnecting = false;
         notificationManager = null;
+        incomingHandler.disabled = true;
+        incomingHandler = null;
         BusProvider.getInstance().post(new ConnectionChangedEvent(Status.Disconnected));
         reconnectCounter = Integer.valueOf(preferences.getString(
                 getString(R.string.preference_reconnect_counter), RECONNECT_COUNTER_DEFAULT));
@@ -358,9 +359,11 @@ public class CoreConnService extends Service {
         notificationManager = new QuasseldroidNotificationManager(this);
         networks = NetworkCollection.getInstance();
         networks.clear();
-
+        incomingHandler = new IncomingHandler();
         acquireWakeLockIfEnabled();
-        coreConn = new CoreConnection(coreId, address, port, username, password, this);
+        coreConn =  new CoreConnection(coreId, address, port, username, password,
+                    this.getVersionName(), incomingHandler, this.getApplicationContext(),
+                    notificationManager);
         startForeground(R.id.NOTIFICATION, notificationManager.getConnectingNotification());
     }
 
@@ -373,11 +376,11 @@ public class CoreConnService extends Service {
      * read thread.
      */
     class IncomingHandler extends Handler {
-
+        public boolean disabled = false;
 
         @Override
         public void handleMessage(Message msg) {
-            if (msg == null || coreConn == null) {
+            if (msg == null || coreConn == null || disabled == true) {
                 return;
             }
 
@@ -850,21 +853,25 @@ public class CoreConnService extends Service {
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if(!requestedDisconnect && preferenceReconnect && !preferenceReconnectPeriodically && coreConn == null && !isConnected()) {
-                ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo info = cm.getNetworkInfo(intent.getIntExtra(ConnectivityManager.EXTRA_NETWORK_TYPE, -1));
+            if(info.getState() == NetworkInfo.State.DISCONNECTED && isConnected()) {
+                Log.d(TAG, "Current network is unavailable, disconnect from core");
+                disconnectFromCore();
+            } else if (!requestedDisconnect && preferenceReconnect && !preferenceReconnectPeriodically && coreConn == null && !isConnected()) {
+                Log.d(TAG, "Reconnecting after network change");
+                    NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                    if (activeNetwork != null && activeNetwork.isConnected()) {
+                        boolean isWiFi = activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
 
-                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-                if (activeNetwork != null && activeNetwork.isConnected()) {
-                    boolean isWiFi = activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
-
-                    if (isWiFi && checkForMeteredCondition()) {
-                        Log.d(TAG, "Reconnecting on Wifi");
-                        connectToCore();
-                    } else if(!preferenceReconnectWifiOnly) {
-                        Log.d(TAG, "Reconnecting (not Wifi)");
-                        connectToCore();
+                        if (isWiFi && checkForMeteredCondition()) {
+                            Log.d(TAG, "Reconnecting on Wifi");
+                            connectToCore();
+                        } else if(!preferenceReconnectWifiOnly) {
+                            Log.d(TAG, "Reconnecting (not Wifi)");
+                            connectToCore();
+                        }
                     }
-                }
             }
         }
     };
@@ -896,7 +903,7 @@ public class CoreConnService extends Service {
 
     @Produce
     public ConnectionChangedEvent produceConnectionStatus() {
-        if (isConnected())
+        if (isConnected() && !isConnecting && initDone)
             return new ConnectionChangedEvent(Status.Connected);
         else if (isConnecting && !initDone)
             return new ConnectionChangedEvent(Status.Connecting);
